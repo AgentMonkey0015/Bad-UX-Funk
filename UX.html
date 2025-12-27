@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Worst UX Phone Entry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#474448;--card:#D36135;--side:#D0DB97;--accent1:#E086D3;--accent2:#6564DB;}
+    html,body{height:100%;margin:0;font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    html, body {
+      overscroll-behavior: none;
+      background-attachment: fixed;
+    }
+    body {
+      min-height: 100vh;
+      margin: 0;
+    }
+    body{background:linear-gradient(180deg,var(--bg) 0%,var(--card) 100%);display:flex;align-items:center;justify-content:center;color:#eee}
+    .wrap{width:920px;max-width:95%;display:flex;gap:20px;flex-direction:column;margin-top:100px;} /* increased to accommodate header height */
+    .panel{background:var(--side);padding:28px;border-radius:12px;box-shadow:8px 8px 0 #000;flex:1;display:flex;flex-direction:column;align-items:center;}
+    h1{font-family:'Courier New', monospace;font-size:20px;color:#474448;margin-bottom:12px;margin:0}
+    .input-container {
+      width: 100%;
+      max-width: 320px;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+      border-radius: 6px;
+      background: #fff;
+    }
+    .input {
+      width: 100%;
+      border: none;
+      outline: none;
+      padding: 12px 16px;
+      font-size: 18px;
+      font-family: 'Courier New', monospace;
+      color: #474448;
+      background: transparent;
+      letter-spacing: 2px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .tiny { font-size:12px; color:#474448; margin-top:10px; }
+    .image-box {
+      background:var(--side);
+      border:4px solid #000;
+      box-shadow:8px 8px 0 #000;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+    }
+    .equation {
+      font-family:'Courier New', monospace;
+      font-size:20px;
+      color:#474448;
+      background:#fff;
+      padding:12px;
+      border:4px solid #000;
+      box-shadow:4px 4px 0 #000;
+      border-radius:0;
+      margin-bottom:14px;
+    }
+    .choices{display:flex;gap:10px}
+    button.opt{padding:10px 14px;border-radius:8px;border:2px solid var(--accent2);background:var(--side);color:#000;cursor:pointer}
+    button.opt:hover{transform:translateY(-2px);border-color:var(--accent1);background:var(--accent2);color:#fff;}
+    .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:40;transition:opacity .2s}
+    .overlay.hidden{pointer-events:none;opacity:0;display:none;}
+    .check{width:220px;height:220px;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-direction:column}
+    .check svg{width:80px;height:80px}
+    .msg{font-family:'Playfair Display',serif;font-weight:800;font-size:48px;color:#000}
+    .creep{position:fixed;inset:0;background:#000;color:#fff;display:none;align-items:center;justify-content:center;z-index:9999;font-family:'Playfair Display',serif;font-weight:800;opacity:0}
+    .creep.show{opacity:1;display:flex;}
+    .creep p{font-size:48px;letter-spacing:2px;margin:0}
+    
+  </style>
+</head>
+<body>
+  <header style="position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:20px;padding:20px;background:var(--bg);border-bottom:4px solid #000;z-index:1000;">
+    <div style="font-family:'Courier New', monospace;font-size:32px;color:#E086D3;">|Bad-UX|</div>
+    <div class="input-container" style="max-width:300px;">
+      <input class="input" type="text" placeholder="Search..." />
+    </div>
+  </header>
+  <div class="wrap" style="flex-direction:row;">
+    <div class="panel" style="background:var(--side);padding:28px;border-radius:12px;box-shadow:8px 8px 0 #000;flex:1;display:flex;flex-direction:column;align-items:center;">
+      <h1 style="font-family:'Courier New', monospace;font-size:20px;color:#474448;margin-bottom:12px;">Enter your phone number</h1>
+      <div class="input-container">
+        <input
+          class="input"
+          id="phone"
+          name="text"
+          type="text"
+          placeholder="Theres Nothing Here"
+          maxlength="11"
+          autocomplete="off"
+        />
+      </div>
+      <div class="tiny" style="margin-top:10px;color:#474448;">11 Digits</div>
+    </div>
+
+    <div class="image-box" id="imgBox" style="background:var(--side);border:4px solid #000;box-shadow:8px 8px 0 #000;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div class="equation" id="equation" style="font-family:'Courier New', monospace;font-size:20px;color:#474448;background:#fff;padding:12px;border:4px solid #000;box-shadow:4px 4px 0 #000;border-radius:0;margin-bottom:14px;">
+        (12 × 7) + 5 × 3 - 9 = ?
+      </div>
+      <div class="choices" id="choices"></div>
+      <div class="tiny" style="margin-top:10px;color:#474448;">Click the correct answer to restore your number. Choose wrong and... things happen.</div>
+    </div>
+  </div>
+
+  <div id="success" class="overlay hidden">
+    <div class="check" style="background:#a5f3a5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.5"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="msg" style="color:#000">✔</div>
+    </div>
+  </div>
+
+  <div id="failure" class="overlay hidden">
+    <div class="check" style="background:#ff9b9b">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="msg" style="color:#000">✖</div>
+    </div>
+  </div>
+
+  <div id="creep" class="creep"><p id="creepText"></p></div>
+
+<script>
+(function(){
+  const phone = document.getElementById('phone');
+  phone.focus();
+  const equationEl = document.getElementById('equation');
+  const choices = document.getElementById('choices');
+  const success = document.getElementById('success');
+  const failure = document.getElementById('failure');
+
+  function genEquation(){
+    const a = Math.floor(Math.random()*15)+2;
+    const b = Math.floor(Math.random()*12)+2;
+    const c = Math.floor(Math.random()*9)+1;
+    const d = Math.floor(Math.random()*10)+1;
+    const sub = Math.floor(Math.random()*9)+1;
+    const eq = `(${a} × ${b}) + ${c} × ${d} - ${sub} = ?`;
+    equationEl.textContent = eq;
+    const correct = (a*b) + (c*d) - sub;
+    return correct;
+  }
+
+  function populateChoices(){
+    choices.innerHTML = '';
+    const correct = genEquation();
+    const wrong1 = correct + (Math.random()>0.5? -Math.floor(Math.random()*6)-1 : Math.floor(Math.random()*6)+1);
+    const wrong2 = correct + (Math.random()>0.5? -Math.floor(Math.random()*12)-2 : Math.floor(Math.random()*12)+2);
+    const arr = [correct, wrong1, wrong2];
+    arr.sort(()=>Math.random()-0.5);
+    arr.forEach(v=>{
+      const b = document.createElement('button');
+      b.className='opt';
+      b.textContent = v;
+      b.addEventListener('click', ()=>handleChoice(v===correct));
+      choices.appendChild(b);
+    });
+  }
+
+  let raw = [];
+  function transformValue(){
+    const out = [];
+    for(let i=0;i<raw.length;i++){
+      const d = parseInt(raw[i])||0;
+      const mult = 2 + i;
+      out.push(String(d * mult));
+    }
+    phone.value = out.join('');
+  }
+
+  phone.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='v'){
+      e.preventDefault();
+      return;
+    }
+    if(e.key==='Backspace'){
+      raw.pop();
+      setTimeout(transformValue,0);
+      return;
+    }
+    if(e.key.length===1){
+      if(/\d/.test(e.key)){
+        if(raw.length>=11){ e.preventDefault(); return; }
+        raw.push(e.key);
+        setTimeout(transformValue,0);
+        // Do not preventDefault here, so input remains focusable and responsive
+      } else {
+        e.preventDefault();
+      }
+    }
+  });
+
+  phone.addEventListener('paste', (e)=>{ e.preventDefault(); });
+
+  function handleChoice(isCorrect){
+    if(isCorrect){
+      phone.value = raw.join('');
+      success.classList.remove('hidden');
+      setTimeout(()=>{ success.classList.add('hidden'); },1500);
+    } else {
+      failure.classList.remove('hidden');
+      setTimeout(()=>{
+        failure.classList.add('hidden');
+        document.body.innerHTML = '';
+        document.documentElement.style.background = '#000';
+        document.body.style.background = '#000';
+        const el = document.createElement('div');
+        el.style.cssText='position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-family:\"Playfair Display\",serif;font-weight:800;font-size:48px;';
+        document.body.appendChild(el);
+        const phrase = ['I','know','where','you','live'];
+        let i=0;
+        function reveal(){
+          if(i>=phrase.length){
+            setTimeout(()=>location.reload(),1200);
+            return;
+          }
+          el.textContent = phrase.slice(0,i+1).join(' ');
+          i++;
+          setTimeout(reveal,700);
+        }
+        reveal();
+      },800);
+    }
+  }
+
+  populateChoices();
+})();
+</script>
+</body>
+</html>
